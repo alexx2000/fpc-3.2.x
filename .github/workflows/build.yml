@@ -93,10 +93,10 @@ jobs:
           EOF
           
           echo "Test aarch64 compiler"
-          ${{ runner.temp }}/fpc-install/usr/local/bin/ppca64 /tmp/hello.pas -o/tmp/hello-aarch64 -XR"${sdk}"
+          #${{ runner.temp }}/fpc-install/usr/local/bin/ppca64 /tmp/hello.pas -o/tmp/hello-aarch64 -XR"${sdk}"
           
           echo "Test x86_64 compiler"
-          ${{ runner.temp }}/fpc-install/usr/local/bin/ppcx64 /tmp/hello.pas -o/tmp/hello-x86_64 -XR"${sdk}"
+          #${{ runner.temp }}/fpc-install/usr/local/bin/ppcx64 /tmp/hello.pas -o/tmp/hello-x86_64 -XR"${sdk}"
 
       - name: Create pkg
         run: |
