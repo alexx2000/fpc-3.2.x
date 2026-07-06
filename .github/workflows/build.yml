@@ -20,7 +20,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git clone --depth=1 --branch=fixes_3_2 https://gitlab.com/freepascal.org/fpc/source.git fpc-src
+          git clone --branch=fixes_3_2 https://github.com/fpc/FPCSource.git fpc-src
 
           fpc_revision=$(git -C fpc-src describe)
           fpc_short_hash_early=$(echo "${fpc_revision}" | grep -o 'g[0-9a-f]*$')
@@ -63,7 +63,7 @@ jobs:
 
       - name: Clone FPC source
         run: |
-          git clone --depth=1 --branch=fixes_3_2 https://gitlab.com/freepascal.org/fpc/source.git fpc-src
+          git clone --depth=1 --branch=fixes_3_2 https://github.com/fpc/FPCSource.git fpc-src
 
       - name: Build FPC
         run: |
