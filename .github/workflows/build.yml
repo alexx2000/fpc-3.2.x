@@ -1,4 +1,4 @@
-name: Build FPC Trunk
+name: build-snapshot
 
 on:
   workflow_dispatch:
@@ -15,7 +15,7 @@ jobs:
       fpc_commit: ${{ steps.check.outputs.fpc_commit }}
       fpc_commit_title: ${{ steps.check.outputs.fpc_commit_title }}
     steps:
-      - name: Check FPC trunk for changes
+      - name: Check FPC fixes_3_2 for changes
         id: check
         env:
           GH_TOKEN: ${{ github.token }}
@@ -93,11 +93,11 @@ jobs:
             WriteLn(Format('Hello FPC %s', [{$I %FPCVERSION%}]))
           end.
           EOF
-          
+
           echo "Test aarch64 compiler"
           file "${{ runner.temp }}/fpc-install/usr/local/bin/ppca64"
           #${{ runner.temp }}/fpc-install/usr/local/bin/ppca64 /tmp/hello.pas -o/tmp/hello-aarch64 -XR"${sdk}"
-          
+
           echo "Test x86_64 compiler"
           file ${{ runner.temp }}/fpc-install/usr/local/bin/ppcx64
           #${{ runner.temp }}/fpc-install/usr/local/bin/ppcx64 /tmp/hello.pas -o/tmp/hello-x86_64 -XR"${sdk}"
@@ -106,7 +106,7 @@ jobs:
         run: |
           pkgbuild \
             --root "${{ runner.temp }}/fpc-install" \
-            --identifier org.freepascal.fpc.trunk.aarch64 \
+            --identifier org.freepascal.fpc.fixes_3_2.aarch64 \
             --version ${{ needs.check.outputs.fpc_version }} \
             --install-location / \
             fpc-${{ needs.check.outputs.fpc_version }}-${{ needs.check.outputs.fpc_short_hash }}-aarch64-macosx.pkg
@@ -129,7 +129,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: fpc-trunk-aarch64+x86_64
+          name: fpc-fixes_3_2-aarch64+x86_64
           path: fpc-${{ needs.check.outputs.fpc_version }}-${{ needs.check.outputs.fpc_short_hash }}-aarch64-macosx.dmg
 
   release:
@@ -142,7 +142,7 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v8
         with:
-          pattern: fpc-trunk-*
+          pattern: fpc-fixes_3_2-*
           merge-multiple: true
 
       - name: Publish release
@@ -165,7 +165,7 @@ jobs:
           gh release delete "${tag}" --repo ${{ github.repository }} --yes 2>/dev/null || true
           gh release create "${tag}" \
             --repo ${{ github.repository }} \
-            --title "FPC ${{ needs.check.outputs.fpc_version }} trunk (${{ needs.check.outputs.fpc_revision }})" \
+            --title "FPC ${{ needs.check.outputs.fpc_version }} fixes_3_2 (${{ needs.check.outputs.fpc_revision }})" \
             --notes-file /tmp/release-notes.txt \
             --latest \
             fpc-${{ needs.check.outputs.fpc_version }}-${{ needs.check.outputs.fpc_short_hash }}-aarch64-macosx.dmg
