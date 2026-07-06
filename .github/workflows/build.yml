@@ -79,7 +79,7 @@ jobs:
 
           # Build and install x86_64 cross-compiler
           make build CPU_TARGET=x86_64 PP=/usr/local/bin/ppca64 OPT="${opt}"
-          make crossinstall CPU_TARGET=x86_64 PP=/usr/local/bin/ppcx64 OPT="${opt}" PREFIX="${{ runner.temp }}/fpc-install/usr/local"
+          make crossinstall CPU_TARGET=x86_64 PP=/usr/local/bin/ppca64 OPT="${opt}" PREFIX="${{ runner.temp }}/fpc-install/usr/local"
 
       - name: Test compiler
         run: |
