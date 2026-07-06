@@ -48,7 +48,7 @@ jobs:
   build:
     name: Build Free Pascal
     needs: check
-    if: needs.check.outputs.changed == 'true'
+    #if: needs.check.outputs.changed == 'true'
     runs-on: macos-15
     steps:
       - name: Install bootstrap compiler
