@@ -74,11 +74,11 @@ jobs:
           opt="-Fl${sdk}/usr/lib -XR${sdk} -WM11.0 -Sg -vw-n-h-l-d-u-t-p-c- -dREVINC"
 
           # Build and install aarch64 compiler
-          make build PP=/usr/local/bin/ppca64 OPT="${opt}"
-          make install PP=/usr/local/bin/ppca64 OPT="${opt}" PREFIX="${{ runner.temp }}/fpc-install/usr/local"
+          #make build PP=/usr/local/bin/ppca64 OPT="${opt}"
+          #make install PP=/usr/local/bin/ppca64 OPT="${opt}" PREFIX="${{ runner.temp }}/fpc-install/usr/local"
 
           # Build and install x86_64 cross-compiler
-          make build CPU_TARGET=x86_64 PP=/usr/local/bin/ppcx64 OPT="${opt}"
+          make build CPU_TARGET=x86_64 PP=/usr/local/bin/ppca64 OPT="${opt}"
           make crossinstall CPU_TARGET=x86_64 PP=/usr/local/bin/ppcx64 OPT="${opt}" PREFIX="${{ runner.temp }}/fpc-install/usr/local"
 
       - name: Test compiler
