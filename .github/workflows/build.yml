@@ -22,7 +22,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git clone https://gitlab.com/freepascal.org/fpc/source.git fpc-src
+          git clone --branch=fixes_3_2 https://gitlab.com/freepascal.org/fpc/source.git fpc-src
 
           fpc_revision=$(git -C fpc-src describe)
           fpc_short_hash_early=$(echo "${fpc_revision}" | grep -o 'g[0-9a-f]*$')
@@ -72,7 +72,7 @@ jobs:
 
       - name: Clone FPC source
         run: |
-          git clone https://gitlab.com/freepascal.org/fpc/source.git fpc-src
+          git clone --branch=fixes_3_2 https://gitlab.com/freepascal.org/fpc/source.git fpc-src
 
       - name: Build FPC
         run: |
@@ -174,11 +174,3 @@ jobs:
             --latest \
             fpc-${{ needs.check.outputs.fpc_version }}-${{ needs.check.outputs.fpc_short_hash }}-aarch64-macosx.dmg \
             fpc-${{ needs.check.outputs.fpc_version }}-${{ needs.check.outputs.fpc_short_hash }}-x86_64-macosx.dmg
-
-  update-cask:
-    name: Update Homebrew cask
-    needs: [check, release]
-    uses: ./.github/workflows/update-cask.yml
-    with:
-      tag: v${{ needs.check.outputs.fpc_version }}-${{ needs.check.outputs.fpc_short_hash }}
-    secrets: inherit
