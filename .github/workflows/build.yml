@@ -76,10 +76,12 @@ jobs:
           # Build and install x86_64 compiler
           make build CPU_TARGET=x86_64 PP=/usr/local/bin/ppcx64 OPT="${opt}"
           make install CPU_TARGET=x86_64 PP=/usr/local/bin/ppcx64 OPT="${opt}" PREFIX="${{ runner.temp }}/fpc-install/usr/local"
+          ln -s ../lib/fpc/3.2.3/ppcx64 "${{ runner.temp }}/fpc-install/usr/local/bin/ppcx64"
 
           # Build and install aarch64 compiler
           make build PP=/usr/local/bin/ppca64 OPT="${opt}"
           make install PP=/usr/local/bin/ppca64 OPT="${opt}" PREFIX="${{ runner.temp }}/fpc-install/usr/local"
+          ln -s ../lib/fpc/3.2.3/ppca64 "${{ runner.temp }}/fpc-install/usr/local/bin/ppca64"
 
       - name: Test compiler
         run: |
@@ -88,14 +90,16 @@ jobs:
           program Hello;
           uses SysUtils;
           begin
-            writeln(Format('Hello FPC %s', [{$I %FPCVERSION%}]))
+            WriteLn(Format('Hello FPC %s', [{$I %FPCVERSION%}]))
           end.
           EOF
           
           echo "Test aarch64 compiler"
+          file "${{ runner.temp }}/fpc-install/usr/local/bin/ppca64"
           #${{ runner.temp }}/fpc-install/usr/local/bin/ppca64 /tmp/hello.pas -o/tmp/hello-aarch64 -XR"${sdk}"
           
           echo "Test x86_64 compiler"
+          file ${{ runner.temp }}/fpc-install/usr/local/bin/ppcx64
           #${{ runner.temp }}/fpc-install/usr/local/bin/ppcx64 /tmp/hello.pas -o/tmp/hello-x86_64 -XR"${sdk}"
 
       - name: Create pkg
