@@ -20,7 +20,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          git clone --branch=fixes_3_2 https://gitlab.com/freepascal.org/fpc/source.git fpc-src
+          git clone --depth=1 --branch=fixes_3_2 https://gitlab.com/freepascal.org/fpc/source.git fpc-src
 
           fpc_revision=$(git -C fpc-src describe)
           fpc_short_hash_early=$(echo "${fpc_revision}" | grep -o 'g[0-9a-f]*$')
@@ -46,17 +46,10 @@ jobs:
           fi
 
   build:
-    name: Build FPC (${{ matrix.cpu }})
+    name: Build Free Pascal
     needs: check
     if: needs.check.outputs.changed == 'true'
-    runs-on: ${{ matrix.runner }}
-    strategy:
-      matrix:
-        include:
-          - cpu: aarch64
-            runner: macos-latest
-          - cpu: x86_64
-            runner: macos-15-intel
+    runs-on: macos-15
     steps:
       - name: Install bootstrap compiler
         run: |
@@ -70,7 +63,7 @@ jobs:
 
       - name: Clone FPC source
         run: |
-          git clone --branch=fixes_3_2 https://gitlab.com/freepascal.org/fpc/source.git fpc-src
+          git clone --depth=1 --branch=fixes_3_2 https://gitlab.com/freepascal.org/fpc/source.git fpc-src
 
       - name: Build FPC
         run: |
@@ -79,13 +72,12 @@ jobs:
           make revision.inc
           cd ..
           opt="-Fl${sdk}/usr/lib -XR${sdk} -WM11.0 -Sg -vw-n-h-l-d-u-t-p-c- -dREVINC"
-          if [[ "${{ matrix.cpu }}" == "aarch64" ]]; then
-            make build PP=/usr/local/bin/ppca64 OPT="${opt}"
-            make install PP=/usr/local/bin/ppca64 OPT="${opt}" PREFIX="${{ runner.temp }}/fpc-install/usr/local"
-          else
-            make build PP=/usr/local/bin/ppcx64 OPT="${opt}"
-            make install PP=/usr/local/bin/ppcx64 OPT="${opt}" PREFIX="${{ runner.temp }}/fpc-install/usr/local"
-          fi
+
+          make build PP=/usr/local/bin/ppca64 OPT="${opt}"
+          make install PP=/usr/local/bin/ppca64 OPT="${opt}" PREFIX="${{ runner.temp }}/fpc-install/usr/local"
+
+          make build CPU_TARGET=x86_64 PP=/usr/local/bin/ppcx64 OPT="${opt}"
+          make crossinstall CPU_TARGET=x86_64 PP=/usr/local/bin/ppcx64 OPT="${opt}" PREFIX="${{ runner.temp }}/fpc-install/usr/local"
 
       - name: Test compiler
         run: |
@@ -97,26 +89,22 @@ jobs:
             writeln(Format('Hello FPC %s', [{$I %FPCVERSION%}]))
           end.
           EOF
-          if [[ "${{ matrix.cpu }}" == "aarch64" ]]; then
-            /usr/local/bin/ppca64 /tmp/hello.pas -o/tmp/hello -XR"${sdk}"
-          else
-            /usr/local/bin/ppcx64 /tmp/hello.pas -o/tmp/hello -XR"${sdk}"
-          fi
-          /tmp/hello
+          /usr/local/bin/ppca64 /tmp/hello.pas -o/tmp/hello -XR"${sdk}"
+          /usr/local/bin/ppcx64 /tmp/hello.pas -o/tmp/hello -XR"${sdk}"
 
       - name: Create pkg
         run: |
           pkgbuild \
             --root "${{ runner.temp }}/fpc-install" \
-            --identifier org.freepascal.fpc.trunk.${{ matrix.cpu }} \
+            --identifier org.freepascal.fpc.trunk.aarch64 \
             --version ${{ needs.check.outputs.fpc_version }} \
             --install-location / \
-            fpc-${{ needs.check.outputs.fpc_version }}-${{ needs.check.outputs.fpc_short_hash }}-${{ matrix.cpu }}-macosx.pkg
+            fpc-${{ needs.check.outputs.fpc_version }}-${{ needs.check.outputs.fpc_short_hash }}-aarch64-macosx.pkg
 
       - name: Create DMG
         run: |
-          pkg="fpc-${{ needs.check.outputs.fpc_version }}-${{ needs.check.outputs.fpc_short_hash }}-${{ matrix.cpu }}-macosx.pkg"
-          vol="fpc-${{ needs.check.outputs.fpc_version }}-${{ needs.check.outputs.fpc_short_hash }}-${{ matrix.cpu }}-macosx"
+          pkg="fpc-${{ needs.check.outputs.fpc_version }}-${{ needs.check.outputs.fpc_short_hash }}-aarch64-macosx.pkg"
+          vol="fpc-${{ needs.check.outputs.fpc_version }}-${{ needs.check.outputs.fpc_short_hash }}-aarch64-macosx"
           dmg_rw="${vol}-rw.dmg"
           dmg_out="${vol}.dmg"
           pkg_size=$(du -sm "${pkg}" | cut -f1)
@@ -131,8 +119,8 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: fpc-trunk-${{ matrix.cpu }}
-          path: fpc-${{ needs.check.outputs.fpc_version }}-${{ needs.check.outputs.fpc_short_hash }}-${{ matrix.cpu }}-macosx.dmg
+          name: fpc-trunk-aarch64
+          path: fpc-${{ needs.check.outputs.fpc_version }}-${{ needs.check.outputs.fpc_short_hash }}-aarch64-macosx.dmg
 
   release:
     name: Publish release
@@ -170,5 +158,4 @@ jobs:
             --title "FPC ${{ needs.check.outputs.fpc_version }} trunk (${{ needs.check.outputs.fpc_revision }})" \
             --notes-file /tmp/release-notes.txt \
             --latest \
-            fpc-${{ needs.check.outputs.fpc_version }}-${{ needs.check.outputs.fpc_short_hash }}-aarch64-macosx.dmg \
-            fpc-${{ needs.check.outputs.fpc_version }}-${{ needs.check.outputs.fpc_short_hash }}-x86_64-macosx.dmg
+            fpc-${{ needs.check.outputs.fpc_version }}-${{ needs.check.outputs.fpc_short_hash }}-aarch64-macosx.dmg
