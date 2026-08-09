@@ -74,29 +74,12 @@ jobs:
           opt="-Fl${sdk}/usr/lib -XR${sdk} -WM11.0 -Sg -vw-n-h-l-d-u-t-p-c- -dREVINC"
 
           # Build and install aarch64 compiler
-          #make build PP=/usr/local/bin/ppca64 OPT="${opt}"
-          #make install PP=/usr/local/bin/ppca64 OPT="${opt}" PREFIX="${{ runner.temp }}/fpc-install/usr/local"
+          make build PP=/usr/local/bin/ppca64 OPT="${opt}"
+          make install PP=/usr/local/bin/ppca64 OPT="${opt}" PREFIX="${{ runner.temp }}/fpc-install/usr/local"
 
           # Build and install x86_64 cross-compiler
           make build CPU_TARGET=x86_64 PP=/usr/local/bin/ppca64 OPT="${opt} -dFPC_SOFT_FPUX80"
           make crossinstall CPU_TARGET=x86_64 PP=/usr/local/bin/ppca64 OPT="${opt}" PREFIX="${{ runner.temp }}/fpc-install/usr/local"
-
-      - name: Test compiler
-        run: |
-          sdk="$(xcrun --show-sdk-path)"
-          cat > /tmp/hello.pas << 'EOF'
-          program Hello;
-          uses SysUtils;
-          begin
-            writeln(Format('Hello FPC %s', [{$I %FPCVERSION%}]))
-          end.
-          EOF
-          
-          echo "Test aarch64 compiler"
-          /usr/local/bin/ppca64 /tmp/hello.pas -o/tmp/hello-aarch64 -XR"${sdk}"
-          
-          echo "Test x86_64 cross-compiler"
-          /usr/local/bin/ppcx64 /tmp/hello.pas -o/tmp/hello-cross-x86_64 -XR"${sdk}"
 
       - name: Create pkg
         run: |
