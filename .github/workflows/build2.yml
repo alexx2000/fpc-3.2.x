@@ -15,7 +15,7 @@ jobs:
       fpc_commit: ${{ steps.check.outputs.fpc_commit }}
       fpc_commit_title: ${{ steps.check.outputs.fpc_commit_title }}
     steps:
-      - name: Check FPC trunk for changes
+      - name: Check FPC fixes_3_2 for changes
         id: check
         env:
           GH_TOKEN: ${{ github.token }}
@@ -61,11 +61,11 @@ jobs:
           sudo cp -r bootstrap-contents/Payload/usr/local/. /usr/local/
           hdiutil detach /Volumes/fpc-bootstrap
 
-      - name: Clone FPC source
+      - name: Clone Free Pascal source
         run: |
           git clone --depth=1 --branch=fixes_3_2 https://github.com/fpc/FPCSource.git fpc-src
 
-      - name: Build FPC
+      - name: Build Free Pascal compiler
         run: |
           sdk="$(xcrun --show-sdk-path)"
           cd fpc-src/compiler
@@ -76,16 +76,18 @@ jobs:
           # Build and install aarch64 compiler
           make build PP=/usr/local/bin/ppca64 OPT="${opt}"
           make install PP=/usr/local/bin/ppca64 OPT="${opt}" PREFIX="${{ runner.temp }}/fpc-install/usr/local"
+          ln -s ../lib/fpc/3.2.3/ppca64 "${{ runner.temp }}/fpc-install/usr/local/bin/ppca64"
 
           # Build and install x86_64 cross-compiler
           make build CPU_TARGET=x86_64 PP=/usr/local/bin/ppca64 OPT="${opt} -dFPC_SOFT_FPUX80"
           make crossinstall CPU_TARGET=x86_64 PP=/usr/local/bin/ppca64 OPT="${opt}" PREFIX="${{ runner.temp }}/fpc-install/usr/local"
+          ln -s ../lib/fpc/3.2.3/ppcrossx64 "${{ runner.temp }}/fpc-install/usr/local/bin/ppcrossx64"
 
       - name: Create pkg
         run: |
           pkgbuild \
             --root "${{ runner.temp }}/fpc-install" \
-            --identifier org.freepascal.fpc.trunk.aarch64 \
+            --identifier org.freepascal.fpc.fixes_3_2.aarch64 \
             --version ${{ needs.check.outputs.fpc_version }} \
             --install-location / \
             fpc-${{ needs.check.outputs.fpc_version }}-${{ needs.check.outputs.fpc_short_hash }}-aarch64-macosx.pkg
@@ -108,7 +110,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v7
         with:
-          name: fpc-trunk-aarch64+cross-x86_64
+          name: fpc-fixes_3_2-aarch64+cross-x86_64
           path: fpc-${{ needs.check.outputs.fpc_version }}-${{ needs.check.outputs.fpc_short_hash }}-aarch64-macosx.dmg
 
   release:
@@ -121,7 +123,7 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v8
         with:
-          pattern: fpc-trunk-*
+          pattern: fpc-fixes_3_2-*
           merge-multiple: true
 
       - name: Publish release
@@ -144,7 +146,7 @@ jobs:
           gh release delete "${tag}" --repo ${{ github.repository }} --yes 2>/dev/null || true
           gh release create "${tag}" \
             --repo ${{ github.repository }} \
-            --title "FPC ${{ needs.check.outputs.fpc_version }} trunk (${{ needs.check.outputs.fpc_revision }})" \
+            --title "FPC ${{ needs.check.outputs.fpc_version }} fixes_3_2 (${{ needs.check.outputs.fpc_revision }})" \
             --notes-file /tmp/release-notes.txt \
             --latest \
             fpc-${{ needs.check.outputs.fpc_version }}-${{ needs.check.outputs.fpc_short_hash }}-aarch64-macosx.dmg
