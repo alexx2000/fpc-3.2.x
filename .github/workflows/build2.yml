@@ -81,7 +81,7 @@ jobs:
           # Build and install x86_64 cross-compiler
           make build CPU_TARGET=x86_64 PP=/usr/local/bin/ppca64 OPT="${opt} -dFPC_SOFT_FPUX80"
           make crossinstall CPU_TARGET=x86_64 PP=/usr/local/bin/ppca64 OPT="${opt}" PREFIX="${{ runner.temp }}/fpc-install/usr/local"
-          ln -s ../lib/fpc/3.2.3/ppcrossx64 "${{ runner.temp }}/fpc-install/usr/local/bin/ppcrossx64"
+          ln -s ../lib/fpc/3.2.3/ppcrossx64 "${{ runner.temp }}/fpc-install/usr/local/bin/ppcx64"
 
       - name: Create pkg
         run: |
