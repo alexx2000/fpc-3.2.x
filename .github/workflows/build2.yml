@@ -76,12 +76,12 @@ jobs:
           # Build and install aarch64 compiler
           make build PP=/usr/local/bin/ppca64 OPT="${opt}"
           make install PP=/usr/local/bin/ppca64 OPT="${opt}" PREFIX="${{ runner.temp }}/fpc-install/usr/local"
-          ln -s ../lib/fpc/3.2.3/ppca64 "${{ runner.temp }}/fpc-install/usr/local/bin/ppca64"
+          ln -s ../lib/fpc/3.2.4/ppca64 "${{ runner.temp }}/fpc-install/usr/local/bin/ppca64"
 
           # Build and install x86_64 cross-compiler
           make build CPU_TARGET=x86_64 PP=/usr/local/bin/ppca64 OPT="${opt} -dFPC_SOFT_FPUX80"
           make crossinstall CPU_TARGET=x86_64 PP=/usr/local/bin/ppca64 OPT="${opt}" PREFIX="${{ runner.temp }}/fpc-install/usr/local"
-          ln -s ../lib/fpc/3.2.3/ppcrossx64 "${{ runner.temp }}/fpc-install/usr/local/bin/ppcx64"
+          ln -s ../lib/fpc/3.2.4/ppcrossx64 "${{ runner.temp }}/fpc-install/usr/local/bin/ppcx64"
 
       - name: Create pkg
         run: |
