@@ -1,0 +1,120 @@
+name: build-fpc3
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Free Pascal
+    runs-on: macos-15
+    outputs:
+      fpc_version: ${{ steps.build.outputs.fpc_version }}
+      fpc_revision: ${{ steps.build.outputs.fpc_revision }}
+      fpc_commit: ${{ steps.build.outputs.fpc_commit }}
+      fpc_commit_title: ${{ steps.build.outputs.fpc_commit_title }}
+    steps:
+      - name: Install bootstrap compiler
+        run: |
+          curl -L -o bootstrap.dmg https://downloads.freepascal.org/fpc/dist/3.2.2/i386-macosx/fpc-3.2.2.intelarm64-macosx.dmg
+          hdiutil attach bootstrap.dmg -mountpoint /Volumes/fpc-bootstrap
+          pkg_path="/Volumes/fpc-bootstrap/fpc-3.2.2-intelarm64-macosx.mpkg/Contents/Packages/fpc-3.2.2-intelarm64-macosx.pkg"
+          pkgutil --expand-full "${pkg_path}" bootstrap-contents
+          sudo cp -r bootstrap-contents/Payload/usr/local/. /usr/local/
+          hdiutil detach /Volumes/fpc-bootstrap
+
+      - name: Clone Free Pascal source
+        run: |
+          git clone --depth=1 --branch=release_3_2_4-branch https://github.com/fpc/FPCSource.git fpc-src
+
+          fpc_revision=$(git -C fpc-src log -1 --format=%h)
+          echo "fpc_revision=${fpc_revision}" >> "$GITHUB_OUTPUT"
+          fpc_version=$(grep -m1 'PACKAGE_VERSION' fpc-src/Makefile | sed 's/.*PACKAGE_VERSION=//')
+          echo "fpc_version=${fpc_version}" >> "$GITHUB_OUTPUT"
+          echo "fpc_commit=$(git -C fpc-src log -1 --format=%H)" >> "$GITHUB_OUTPUT"
+          echo "fpc_commit_title=$(git -C fpc-src log -1 --format=%s)" >> "$GITHUB_OUTPUT"
+
+      - name: Build Free Pascal compiler
+        run: |
+          sdk="$(xcrun --show-sdk-path)"
+          cd fpc-src/compiler
+          make revision.inc
+          cd ..
+          opt="-Fl${sdk}/usr/lib -XR${sdk} -WM11.0 -Sg -vw-n-h-l-d-u-t-p-c- -dREVINC"
+
+          # Build and install aarch64 compiler
+          make build PP=/usr/local/bin/ppca64 OPT="${opt}"
+          make install PP=/usr/local/bin/ppca64 OPT="${opt}" PREFIX="${{ runner.temp }}/fpc-install/usr/local"
+          ln -s ../lib/fpc/3.2.4/ppca64 "${{ runner.temp }}/fpc-install/usr/local/bin/ppca64"
+
+          # Build and install x86_64 cross-compiler
+          make build CPU_TARGET=x86_64 PP=/usr/local/bin/ppca64 OPT="${opt} -dFPC_SOFT_FPUX80"
+          make crossinstall CPU_TARGET=x86_64 PP=/usr/local/bin/ppca64 OPT="${opt}" PREFIX="${{ runner.temp }}/fpc-install/usr/local"
+          ln -s ../lib/fpc/3.2.4/ppcrossx64 "${{ runner.temp }}/fpc-install/usr/local/bin/ppcx64"
+
+      - name: Create pkg
+        run: |
+          pkgbuild \
+            --root "${{ runner.temp }}/fpc-install" \
+            --identifier org.freepascal.fpc.3_2_x.aarch64 \
+            --version ${fpc_version} \
+            --install-location / \
+            fpc-${fpc_version}-aarch64-macosx.pkg
+
+      - name: Create DMG
+        run: |
+          pkg="fpc-${fpc_version}-aarch64-macosx.pkg"
+          vol="fpc-${fpc_version}-aarch64-macosx"
+          dmg_rw="${vol}-rw.dmg"
+          dmg_out="${vol}.dmg"
+          pkg_size=$(du -sm "${pkg}" | cut -f1)
+          dmg_size=$(( pkg_size + 20 ))
+          hdiutil create -volname "${vol}" -size "${dmg_size}m" -fs HFS+ -ov "${dmg_rw}"
+          hdiutil attach "${dmg_rw}" -mountpoint /Volumes/fpc-pkg
+          cp "${pkg}" /Volumes/fpc-pkg/
+          hdiutil detach /Volumes/fpc-pkg
+          hdiutil convert "${dmg_rw}" -format UDZO -ov -o "${dmg_out}"
+          rm "${dmg_rw}"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: fpc-3_2_x-aarch64+cross-x86_64
+          path: fpc-${fpc_version}-aarch64-macosx.dmg
+
+  release:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: fpc-3_2_x-*
+          merge-multiple: true
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="v${{ needs.build.outputs.fpc_version }}"
+          prev_tag=$(gh release list --repo ${{ github.repository }} --limit 1 --json tagName \
+            --jq '.[0].tagName' 2>/dev/null || true)
+          if [[ -n "${prev_tag}" && "${prev_tag}" != "${tag}" ]]; then
+            gh release edit "${prev_tag}" --repo ${{ github.repository }} --prerelease --no-latest 2>/dev/null || true
+          fi
+          full_hash="${{ needs.build.outputs.fpc_commit }}"
+          short_hash="${{ needs.build.outputs.fpc_revision }}"
+          commit_url="https://gitlab.com/freepascal.org/fpc/source/-/commit/${full_hash}"
+          printf 'Free Pascal source commit: [%s](%s) %s\n' \
+            "${short_hash}" \
+            "${commit_url}" \
+            "${{ needs.build.outputs.fpc_commit_title }}" > /tmp/release-notes.txt
+          gh release delete "${tag}" --repo ${{ github.repository }} --yes 2>/dev/null || true
+          gh release create "${tag}" \
+            --repo ${{ github.repository }} \
+            --title "Free Pascal ${{ needs.build.outputs.fpc_version }} (${{ needs.build.outputs.fpc_revision }})" \
+            --notes-file /tmp/release-notes.txt \
+            --latest \
+            fpc-${{ needs.build.outputs.fpc_version }}-aarch64-macosx.dmg
