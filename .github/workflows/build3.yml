@@ -56,14 +56,14 @@ jobs:
           pkgbuild \
             --root "${{ runner.temp }}/fpc-install" \
             --identifier org.freepascal.fpc.3_2_x.aarch64 \
-            --version ${fpc_version} \
+            --version ${{ steps.build.outputs.fpc_version }} \
             --install-location / \
-            fpc-${fpc_version}-aarch64-macosx.pkg
+            fpc-${{ steps.build.outputs.fpc_version }}-aarch64-macosx.pkg
 
       - name: Create DMG
         run: |
-          pkg="fpc-${fpc_version}-aarch64-macosx.pkg"
-          vol="fpc-${fpc_version}-aarch64-macosx"
+          pkg="fpc-${{ steps.build.outputs.fpc_version }}-aarch64-macosx.pkg"
+          vol="fpc-${{ steps.build.outputs.fpc_version }}-aarch64-macosx"
           dmg_rw="${vol}-rw.dmg"
           dmg_out="${vol}.dmg"
           pkg_size=$(du -sm "${pkg}" | cut -f1)
@@ -79,7 +79,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: fpc-3_2_x-aarch64+cross-x86_64
-          path: fpc-${fpc_version}-aarch64-macosx.dmg
+          path: fpc-${{ steps.build.outputs.fpc_version }}-aarch64-macosx.dmg
 
   release:
     name: Publish release
