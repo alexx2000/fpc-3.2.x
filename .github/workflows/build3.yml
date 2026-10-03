@@ -8,10 +8,10 @@ jobs:
     name: Build Free Pascal
     runs-on: macos-15
     outputs:
-      fpc_version: ${{ steps.build.outputs.fpc_version }}
-      fpc_revision: ${{ steps.build.outputs.fpc_revision }}
-      fpc_commit: ${{ steps.build.outputs.fpc_commit }}
-      fpc_commit_title: ${{ steps.build.outputs.fpc_commit_title }}
+      fpc_version: ${{ steps.clone.outputs.fpc_version }}
+      fpc_revision: ${{ steps.clone.outputs.fpc_revision }}
+      fpc_commit: ${{ steps.clone.outputs.fpc_commit }}
+      fpc_commit_title: ${{ steps.clone.outputs.fpc_commit_title }}
     steps:
       - name: Install bootstrap compiler
         run: |
@@ -23,6 +23,7 @@ jobs:
           hdiutil detach /Volumes/fpc-bootstrap
 
       - name: Clone Free Pascal source
+        id: clone
         run: |
           git clone --depth=1 --branch=release_3_2_4-branch https://github.com/fpc/FPCSource.git fpc-src
 
@@ -56,14 +57,14 @@ jobs:
           pkgbuild \
             --root "${{ runner.temp }}/fpc-install" \
             --identifier org.freepascal.fpc.3_2_x.aarch64 \
-            --version ${{ steps.build.outputs.fpc_version }} \
+            --version ${{ steps.clone.outputs.fpc_version }} \
             --install-location / \
-            fpc-${{ steps.build.outputs.fpc_version }}-aarch64-macosx.pkg
+            fpc-${{ steps.clone.outputs.fpc_version }}-aarch64-macosx.pkg
 
       - name: Create DMG
         run: |
-          pkg="fpc-${{ steps.build.outputs.fpc_version }}-aarch64-macosx.pkg"
-          vol="fpc-${{ steps.build.outputs.fpc_version }}-aarch64-macosx"
+          pkg="fpc-${{ steps.clone.outputs.fpc_version }}-aarch64-macosx.pkg"
+          vol="fpc-${{ steps.clone.outputs.fpc_version }}-aarch64-macosx"
           dmg_rw="${vol}-rw.dmg"
           dmg_out="${vol}.dmg"
           pkg_size=$(du -sm "${pkg}" | cut -f1)
@@ -79,7 +80,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: fpc-3_2_x-aarch64+cross-x86_64
-          path: fpc-${{ steps.build.outputs.fpc_version }}-aarch64-macosx.dmg
+          path: fpc-${{ steps.clone.outputs.fpc_version }}-aarch64-macosx.dmg
 
   release:
     name: Publish release
